@@ -1,11 +1,14 @@
 (ns hackathon.core
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
-            [om.dom :as dom]))
+            [om.dom :as dom]
+            [clojure.string :as string]))
 
 (def app-state
   (atom
-    {:app/title "Animals"
+    {:app/title "Bravo Time"
+     :time/entries [{:user "Dave" :project "Hackathon" :start "2016-02-27T14:00:00+05:00" :duration (* 8 60 60 1000)}
+                    {:user "Kyle" :project "Hackathon" :start "2016-02-27T14:00:00+05:00" :duration (* 8 60 60 1000)}]
      :animals/list
      [[1 "Ant"] [2 "Antelope"] [3 "Bird"] [4 "Cat"] [5 "Dog"]
       [6 "Lion"] [7 "Mouse"] [8 "Monkey"] [9 "Snake"] [10 "Zebra"]]}))
@@ -23,23 +26,33 @@
   [{:keys [state] :as env} key {:keys [start end]}]
   {:value (subvec (:animals/list @state) start end)})
 
-(defui AnimalsList
-  static om/IQueryParams
-  (params [this]
-    {:start 0 :end 10})
+(defmulti mutate (fn [env key params] key))
+
+(defmethod mutate :time/add-entry
+  [{:keys [state] :as env} key {:keys [new-entry]}]
+  {:value {:key [:time/entries]}
+   :action #(swap! state update-in [:time/entries] (conj (:time/entries state) new-entry))})
+
+(defui TimeEntryForm
   static om/IQuery
   (query [this]
-    '[:app/title (:animals/list {:start ?start :end ?end})])
+         '[:app/title :time/entries])
   Object
   (render [this]
-    (let [{:keys [app/title animals/list]} (om/props this)]
-      (dom/div nil
-        (dom/h2 nil title)
-        (apply dom/ul nil
-          (map
-            (fn [[i name]]
-              (dom/li nil (str i ". " name)))
-            list))))))
+          (let [{:keys [app/title time/entries]} (om/props this)]
+          (dom/div nil
+                   (dom/h2 nil title)
+                   (dom/form nil
+                             (dom/label nil "User: " (dom/input #js {:type "text"}))
+                             (dom/label nil "Project: " (dom/input #js {:type "text"}))
+                             (dom/label nil "Start: " (dom/input #js {:type "text"}))
+                             (dom/label nil "Duration: " (dom/input #js {:type "text"}))
+                             (dom/button nil "Submit"))
+                   (dom/h2 nil "Existing Entries")
+                   (apply dom/ul nil
+                          (map (fn [{:keys [user project start duration]}]
+                                 (dom/li nil (string/join " " [user project start duration])))
+                               entries))))))
 
 (def reconciler
   (om/reconciler
@@ -47,4 +60,4 @@
      :parser (om/parser {:read read})}))
 
 (om/add-root! reconciler
-  AnimalsList (gdom/getElement "app"))
+  TimeEntryForm (gdom/getElement "app"))
