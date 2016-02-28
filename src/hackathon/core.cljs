@@ -2,7 +2,8 @@
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
             [om.dom :as dom]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+			[hackathon.data-access :as da]))
 
 (def app-state
   (atom
